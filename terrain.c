@@ -60,32 +60,50 @@ void drawTerrain() {
     for (int i = 0; i < WIDTH - 1; i++) {
         glBegin(GL_TRIANGLE_STRIP);
         for (int j = 0; j < HEIGHT; j++) {
-            if (!scanning) {
-                // Adjust color based on height for grassy shades
-                float color = terrain[i][j] / HILL_HEIGHT;
-                glColor3f(0.0, 0.5 + color * 0.5, 0.0); // Shades of green for terrain
-            } else {
-                float slope = getSlope(i, j);
-                scanResults[i][j] = slope;
-
-                // Adjust color based on slope for scanning layer
-                float slopeValue = scanResults[i][j];
-                if (slopeValue > 0.8) {
-                    glColor3f(1.0, 0.0, 0.0);  // Red for too steep
-                } else if (slopeValue > 0.5) {
-                    glColor3f(1.0, 1.0, 0.0);  // Yellow for moderately steep
-                } else {
-                    glColor3f(115.0 / 255.0, 167.0 / 255.0, 192.0 / 255.0);  // RGB(115,167,192) for blue
-                }
-            }
-
+            // Always draw the green terrain below
+            float color = terrain[i][j] / HILL_HEIGHT;
+            glColor3f(0.0, 0.5 + color * 0.5, 0.0); // Shades of green
             glVertex3f(i, terrain[i][j], j);
+            glColor3f(0.0, 0.5 + color * 0.5, 0.0); // Shades of green
             glVertex3f(i + 1, terrain[i + 1][j], j);
         }
         glEnd();
     }
 }
 
+void drawSlopeStrainLayer() {
+    // Draw the slope strain layer only when R is pressed
+    if (scanning) {
+        for (int i = 0; i < WIDTH - 1; i++) {
+            glBegin(GL_TRIANGLE_STRIP);
+            for (int j = 0; j < HEIGHT; j++) {
+                float slope = getSlope(i, j);
+                scanResults[i][j] = slope;
+
+                // Draw smaller triangles with transparency for the scanning layer
+                float slopeValue = scanResults[i][j];
+                if (slopeValue > 0.8) {
+                    glColor4f(1.0, 0.0, 0.0, 0.5);  // Red for too steep with transparency
+                } else if (slopeValue > 0.5) {
+                    glColor4f(1.0, 1.0, 0.0, 0.5);  // Yellow for moderately steep with transparency
+                } else {
+                    glColor4f(115.0 / 255.0, 167.0 / 255.0, 192.0 / 255.0, 0.5);  // RGB(115,167,192) for blue with transparency
+                }
+
+                // Draw smaller triangles at each grid cell
+                glBegin(GL_TRIANGLES);
+                glVertex3f(i, terrain[i][j], j);
+                glVertex3f(i + 0.5, terrain[i][j], j);
+                glVertex3f(i, terrain[i + 1][j], j);
+
+                glVertex3f(i + 0.5, terrain[i][j], j);
+                glVertex3f(i + 1, terrain[i + 1][j], j);
+                glVertex3f(i, terrain[i + 1][j], j);
+                glEnd();
+            }
+        }
+    }
+}
 
 void updateCamera() {
     glLoadIdentity();
@@ -100,7 +118,13 @@ void display() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     generateTerrain();
+    glEnable(GL_DEPTH_TEST);
+
+    // Draw the terrain layer
     drawTerrain();
+
+    // Draw the slope strain layer
+    drawSlopeStrainLayer();
 
     glFlush();
 }
