@@ -3,6 +3,7 @@
 #include <GL/glu.h>
 #include <math.h>
 #include <noise/noise.h>
+#include <stdbool.h>
 
 #define WIDTH 100
 #define HEIGHT 100
@@ -10,6 +11,9 @@
 #define HILL_HEIGHT 5.0
 
 float terrain[WIDTH][HEIGHT];
+
+bool scanning = false;
+float scanResults[WIDTH][HEIGHT];
 
 float cameraPosX = WIDTH / 2;
 float cameraPosY = SCALE * 10;
@@ -37,20 +41,51 @@ void generateTerrain() {
     }
 }
 
+float getSlope(int i, int j) {
+    float slope = 0.0f;
+
+    if (i > 0 && i < WIDTH - 1 && j > 0 && j < HEIGHT - 1) {
+        // Calculate slopes in x and z directions
+        float slopeX = (terrain[i + 1][j] - terrain[i - 1][j]) / 2.0f;
+        float slopeZ = (terrain[i][j + 1] - terrain[i][j - 1]) / 2.0f;
+
+        // Calculate overall slope magnitude
+        slope = sqrt(slopeX * slopeX + slopeZ * slopeZ);
+    }
+
+    return slope;
+}
+
 void drawTerrain() {
     for (int i = 0; i < WIDTH - 1; i++) {
         glBegin(GL_TRIANGLE_STRIP);
         for (int j = 0; j < HEIGHT; j++) {
-            // Adjust color based on height for grassy shades
-            float color = terrain[i][j] / HILL_HEIGHT;
-            glColor3f(0.0, 0.5 + color * 0.5, 0.0); // Shades of green
+            if (!scanning) {
+                // Adjust color based on height for grassy shades
+                float color = terrain[i][j] / HILL_HEIGHT;
+                glColor3f(0.0, 0.5 + color * 0.5, 0.0); // Shades of green for terrain
+            } else {
+                float slope = getSlope(i, j);
+                scanResults[i][j] = slope;
+
+                // Adjust color based on slope for scanning layer
+                float slopeValue = scanResults[i][j];
+                if (slopeValue > 0.8) {
+                    glColor3f(1.0, 0.0, 0.0);  // Red for too steep
+                } else if (slopeValue > 0.5) {
+                    glColor3f(1.0, 1.0, 0.0);  // Yellow for moderately steep
+                } else {
+                    glColor3f(115.0 / 255.0, 167.0 / 255.0, 192.0 / 255.0);  // RGB(115,167,192) for blue
+                }
+            }
+
             glVertex3f(i, terrain[i][j], j);
-            glColor3f(0.0, 0.5 + color * 0.5, 0.0);
             glVertex3f(i + 1, terrain[i + 1][j], j);
         }
         glEnd();
     }
 }
+
 
 void updateCamera() {
     glLoadIdentity();
@@ -92,6 +127,19 @@ void processInput(GLFWwindow* window) {
     }
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
         cameraPosY -= baseSpeed;
+    }
+    if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
+        scanning = true;
+
+        // Perform scanning logic
+        for (int i = 0; i < WIDTH; i++) {
+            for (int j = 0; j < HEIGHT; j++) {
+                float slope = getSlope(i, j);
+                scanResults[i][j] = slope;
+            }
+        }
+    } else {
+        scanning = false;
     }
 
     double mouseX, mouseY;
