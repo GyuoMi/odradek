@@ -199,11 +199,9 @@ int main() {
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     glMatrixMode(GL_PROJECTION);
-    gluPerspective(45.0f, 800.0f / 600.0f, 0.1f, 100.0f);
+    gluPerspective(45.0f, 800.0f / 600.0f, 0.1f, 1000.0f);
 
     glMatrixMode(GL_MODELVIEW);
-
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     while (!glfwWindowShouldClose(window)) {
         processInput(window);
